@@ -49,7 +49,6 @@ def train(opt, model, criterion, optimizer, loader):
         data_time.update(time.time() - end)
 
         images, labels, _, _ = data
-
         images = Variable(images)
         labels = Variable(labels.long())
 
@@ -263,7 +262,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=4,
+        default=2,
         help='batch size')
 
     parser.add_argument(
@@ -275,7 +274,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--crop_size',
         type=int,
-        default=769,
+        default=569,
         help='image width to the network')
 
     parser.add_argument(

@@ -63,7 +63,7 @@ class CityscapesDataloader(data.Dataset):
 
         id_to_trainid = {}
         new_label = 0
-        for id in enumerate(id_list):
+        for id in id_list:
             if id in labelid_list:
                 id_to_trainid[id] = new_label
                 new_label += 1
