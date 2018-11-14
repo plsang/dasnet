@@ -1,10 +1,7 @@
 import os
-import torch
 import torchvision.transforms as transforms
 import torch.utils.data as data
 import numpy as np
-import json
-import glob
 import cv2
 import logging
 import random
@@ -32,7 +29,7 @@ class CityscapesDataloader(data.Dataset):
         super(CityscapesDataloader, self).__init__()
 
         self.data_dir = opt.data_dir
-        self.crop_h, self.crop_w = opt.crop_size, opt.crop_size
+        self.crop_h, self.crop_w = opt.crop_size_h, opt.crop_size_w
         self.random_scale = opt.random_scale
         self.random_mirror = opt.random_mirror
         self.ignore_label = opt.ignore_label
@@ -82,16 +79,6 @@ class CityscapesDataloader(data.Dataset):
                 label_copy[label == k] = v
         return label_copy
 
-    def id2trainId(self, label, reverse=False):
-        label_copy = label.copy()
-        if reverse:
-            for v, k in self.id_to_trainid.items():
-                label_copy[label == k] = v
-        else:
-            for k, v in self.id_to_trainid.items():
-                label_copy[label == k] = v
-        return label_copy
-
     def generate_scale_label(self, image, label):
         f_scale = 0.5 + random.randint(0, 16) / 10.0
         image = cv2.resize(image, None, fx=f_scale, fy=f_scale, interpolation = cv2.INTER_LINEAR)
@@ -129,6 +116,8 @@ class CityscapesDataloader(data.Dataset):
         else:
             img_pad, label_pad = image, label
 
+        # this only do cropping to the crop area
+        # we may replace this part by the transform functions in Pytorch
         img_h, img_w = label_pad.shape
         h_off = random.randint(0, img_h - self.crop_h)
         w_off = random.randint(0, img_w - self.crop_w)

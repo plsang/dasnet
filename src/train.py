@@ -67,9 +67,7 @@ def train(opt, model, criterion, optimizer, loader):
 
         pbar.set_description(
             '>>> Training loss={:.6f}, i/o time={data_time.avg:.3f}s, gpu time={batch_time.avg:.3f}s'.format(
-                loss.item(),
-                data_time=data_time,
-                batch_time=batch_time))
+                loss.item(), data_time=data_time, batch_time=batch_time))
         end = time.time()
 
 
@@ -139,7 +137,7 @@ def main(opt):
     new_params = model.state_dict().copy()
     for i in saved_state_dict:
         i_parts = i.split('.')
-        if not i_parts[0]=='fc' and not  i_parts[0]=='last_linear' and not i_parts[0]=='classifier':
+        if not i_parts[0] == 'fc' and not i_parts[0] == 'last_linear' and not i_parts[0] == 'classifier':
             new_params['.'.join(i_parts[0:])] = saved_state_dict[i]
     model.load_state_dict(new_params)
 
@@ -160,7 +158,6 @@ def main(opt):
         # the optimal set of algorithms for that particular configuration
         # (which takes some time). This usually leads to faster runtime.
         cudnn.benchmark = True
-
 
     logger.info("Start training...")
     best_loss = sys.maxsize
@@ -278,10 +275,16 @@ if __name__ == '__main__':
         help='number of classes')
 
     parser.add_argument(
-        '--crop_size',
+        '--crop_size_h',
         type=int,
-        default=569,
-        help='image width to the network')
+        default=769,
+        help='cropped image height')
+
+    parser.add_argument(
+        '--crop_size_w',
+        type=int,
+        default=769,
+        help='cropped image width')
 
     parser.add_argument(
         '--random-scale',
@@ -350,7 +353,9 @@ if __name__ == '__main__':
         help='random number generator seed to use')
 
     opt = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(levelname)s: %(message)s')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s:%(levelname)s: %(message)s')
 
     logger.info(
         'Input arguments: %s',

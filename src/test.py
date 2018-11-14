@@ -1,5 +1,7 @@
 import argparse
 import os
+import numpy as np
+import numpy.ma as ma
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -12,185 +14,119 @@ import logging
 from tqdm import tqdm
 import warnings
 
-from model import LaneNet, PostProcessor, LaneClustering
 from dataloader import get_data_loader
-from utils import AverageMeter, get_lane_area, get_lane_mask, output_lanes
+from models import get_model
+from utils.criterion import CriterionDSN
+from utils.utils import AverageMeter, adjust_learning_rate
+from utils.parallel import DataParallelModel, DataParallelCriterion
 
 logger = logging.getLogger(__name__)
-warnings.filterwarnings('ignore')
+# warnings.filterwarnings('ignore')
 
 
-def test(model, loader, postprocessor, clustering,
-         show_demo=False, save_dir=None):
-    """Test a model on image and display detected lanes
+def get_confusion_matrix(gt_label, pred_label, class_num):
+    """
+    Calcute the confusion matrix by given label and pred
+    :param gt_label: the ground truth label
+    :param pred_label: the pred label
+    :param class_num: the nunber of class
+    :return: the confusion matrix
+    """
+    index = (gt_label * class_num + pred_label).astype('int32')
+    label_count = np.bincount(index)
+    confusion_matrix = np.zeros((class_num, class_num))
+
+    for i_label in range(class_num):
+        for i_pred_label in range(class_num):
+            cur_index = i_label * class_num + i_pred_label
+            if cur_index < len(label_count):
+                confusion_matrix[i_label,
+                                 i_pred_label] = label_count[cur_index]
+
+    return confusion_matrix
+
+
+def test(opt, model, loader):
+    """
+    Validate the model at the current state
 
     Args:
+        opt (Namspace): training options
         model (LaneNet): a LaneNet model
-        loader (Dataloader) : data loader on test images
-        postprocessor (PostProcessor): post processing, like filling empty gaps
-            between nearby pixels using a closing operator
-        clustering (LaneClustering): cluster lane embeddings to assign pixel
-            to lane instance
+        criterion: a CrossEntropyLoss criterion
+        loader: val data loader
 
     Returns:
-        None
+        The average loss value on val data
 
     """
+
+    val_loss = AverageMeter()
     model.eval()
 
     run_time = AverageMeter()
     end = time.time()
+    confusion_matrix = np.zeros((opt.num_classes, opt.num_classes))
+
     pbar = tqdm(loader)
-    if save_dir and not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    with torch.no_grad():
+        for data in pbar:
+            images, labels, sizes, _ = data
+            sizes = sizes[0].numpy()
 
-    for data in pbar:
-        # Update the model
-        images, _, _, _, org_images, image_ids = data
+            images = Variable(images)
+            N_, C_, H_, W_ = images.shape
 
-        images = Variable(images, volatile=False)
+            if torch.cuda.is_available():
+                images = images.cuda()
 
-        if torch.cuda.is_available():
-            images = images.cuda()
+            preds = model(images)
+            if 'dsn' in opt.model_type:
+                preds = preds[-1]
 
-        bin_preds, ins_preds = model(images)
+            full_preds = F.upsample(
+                input=preds, size=(H_, W_),
+                mode='bilinear', align_corners=True)
+            output = full_preds.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-        # convert to probabiblity output
-        bin_preds = F.softmax(bin_preds, dim=1)
-        # take the index of the max along the dim=1 dimension
-        bin_preds = bin_preds.max(1)[1]
+            seg_pred = np.asarray(np.argmax(output, axis=3), dtype=np.uint8)
+            m_seg_pred = ma.masked_array(
+                seg_pred, mask=torch.eq(
+                    labels, opt.ignore_label))
+            ma.set_fill_value(m_seg_pred, 20)
+            seg_pred = m_seg_pred
 
-        bs = images.shape[0]
-        for i in range(bs):
-            bin_img = bin_preds[i].data.cpu().numpy()
-            ins_img = ins_preds[i].data.cpu().numpy()
-            image_id = image_ids[i]
+            seg_gt = np.asarray(
+                labels.numpy()[
+                    :,
+                    :sizes[0],
+                    :sizes[1]],
+                dtype=np.int)
+            ignore_index = seg_gt != opt.ignore_label
+            seg_gt = seg_gt[ignore_index]
+            seg_pred = seg_pred[ignore_index]
+            confusion_matrix += get_confusion_matrix(
+                seg_gt, seg_pred, opt.num_classes)
 
-            bin_img = postprocessor.process(bin_img)
-
-            lane_embedding_feats, lane_coordinate = get_lane_area(
-                bin_img, ins_img)
-            if lane_embedding_feats.size > 0:
-                num_clusters, labels, cluster_centers = clustering.cluster(
-                    lane_embedding_feats, bandwidth=1.5)
-
-                mask_img = get_lane_mask(num_clusters, labels, bin_img,
-                                        lane_coordinate)
-
-                mask_img = mask_img[:, :, (2, 1, 0)]
-                src_img = org_images[i]
-                overlay_img = cv2.addWeighted(src_img, 1.0, mask_img, 1.0, 0)
-            else:
-                overlay_img = org_images[i]
-
-            if show_demo:
-                plt.ion()
-                plt.figure('result')
-                plt.imshow(overlay_img)
-                plt.show()
-                plt.pause(0.01)
-
-            if save_dir:
-                image_path = os.path.join(save_dir, image_id + '.' + opt.image_ext)
-                cv2.imwrite(image_path, cv2.cvtColor(overlay_img, cv2.COLOR_RGB2BGR))
-
-        run_time.update(time.time() - end)
-        end = time.time()
-        fps = bs/run_time.avg
-        pbar.set_description('Average run time: {fps:.3f} fps'.format(fps=fps))
-
-
-def tu_test(model, loader, postprocessor, clustering):
-    """Test a model on image and display detected lanes
-
-    Args:
-        model (LaneNet): a LaneNet model
-        loader (Dataloader) : data loader on test images
-        postprocessor (PostProcessor): post processing, like filling empty gaps
-            between nearby pixels using a closing operator
-        clustering (LaneClustering): cluster lane embeddings to assign pixel
-            to lane instance
-
-    Returns:
-        None
-
-    """
-    model.eval()
-
-    run_time = AverageMeter()
-    pbar = tqdm(loader)
-
-    x_lanes = []
-    times = []
-    for data in pbar:
-        # Update the model
-        images, y_samples, widths, heights = data
-
-        images = Variable(images, volatile=False)
-
-        if torch.cuda.is_available():
-            images = images.cuda()
-
-        bin_preds, ins_preds = model(images)
-
-        # convert to probabiblity output
-        bin_preds = F.softmax(bin_preds, dim=1)
-        # take the index of the max along the dim=1 dimension
-        bin_preds = bin_preds.max(1)[1]
-
-        bs, height, width = images.shape[0], images.shape[2], images.shape[3]
-
-        for i in range(bs):
+            # measure speed test
+            bs = images.shape[0]
+            run_time.update(time.time() - end)
             end = time.time()
-            bin_img = bin_preds[i].data.cpu().numpy()
-            ins_img = ins_preds[i].data.cpu().numpy()
+            fps = bs/run_time.avg
+            pbar.set_description(
+                'Average run time: {fps:.3f} fps'.format(
+                    fps=fps))
 
-            bin_img = postprocessor.process(bin_img)
+    pos = confusion_matrix.sum(1)
+    res = confusion_matrix.sum(0)
+    tp = np.diag(confusion_matrix)
 
-            lane_embedding_feats, lane_coordinate = get_lane_area(
-                bin_img, ins_img)
+    IU_array = (tp / np.maximum(1.0, pos + res - tp))
+    mean_IU = IU_array.mean()
 
-            num_clusters, labels, cluster_centers = clustering.cluster(
-                    lane_embedding_feats, bandwidth=1.5)
+    print({'meanIU': mean_IU, 'IU_array': IU_array})
+    return mean_IU
 
-            y_rate = 1.0*height/heights[i]
-            x_rate = 1.0*width/widths[i]
-            y_scaled = [y * y_rate for y in y_samples[i]]
-            x_scaled = output_lanes(num_clusters, labels, bin_img, lane_coordinate, y_scaled)
-
-            # project into original image size
-            x_lanes_ = [[-2 if (x < 0 or x >= width) else int(round(x/x_rate)) for x in x_lane] for x_lane in x_scaled]
-            x_lanes.append(x_lanes_)
-
-            elapsed_time = time.time() - end
-
-            # time should be reported in miliseconds here
-            # if it is > 1 second, it will be evaluated at 0 score
-            times.append(int(elapsed_time))
-            run_time.update(elapsed_time)
-        fps = 1.0/run_time.avg
-        pbar.set_description('Average run time: {fps:.3f} fps'.format(fps=fps))
-
-    return x_lanes, times
-
-def output_tuprediction(test_file, x_lanes, times, output_file):
-    test_lines = [l for l in open(opt.meta_file, 'rb')]
-    logger.info('Loaded %s test images', len(test_lines))
-
-    assert(len(test_lines) == len(x_lanes))
-    info = []
-    for i, l in enumerate(test_lines):
-        img_info = json.loads(l)
-        img_info['lanes'] = x_lanes[i]
-        img_info['run_time'] = times[i]
-        info.append(img_info)
-
-    with open(output_file, 'w') as of:
-        for img_info in info:
-            json.dump(img_info, of)
-            of.write('\n')
-
-    logger.info('Wrote to %s', output_file)
 
 def main(opt):
     logger.info('Loading model: %s', opt.model_file)
@@ -199,110 +135,72 @@ def main(opt):
 
     checkpoint_opt = checkpoint['opt']
 
-    # Load model location
-    model = LaneNet(cnn_type=checkpoint_opt.cnn_type)
-
     # Update/Overwrite some test options like batch size, location to metadata
     # file
     vars(checkpoint_opt).update(vars(opt))
 
+    logger.info('Building model...')
+    model = get_model(checkpoint_opt, num_classes=checkpoint_opt.num_classes)
+
     test_loader = get_data_loader(
         checkpoint_opt,
         split='test',
-        return_raw_image=True,
-        loader_type=opt.loader_type)
+        data_list=opt.test_data_list)
 
-    logger.info('Building model...')
+    logger.info('Loading model parameters...')
+    model = DataParallelModel(model)
     model.load_state_dict(checkpoint['model'])
 
     if torch.cuda.is_available():
         model.cuda()
 
-    postprocessor = PostProcessor()
-    clustering = LaneClustering()
-
     logger.info('Start testing...')
 
-    if opt.loader_type == 'tutest':
-        x_lanes, times = tu_test(
-            model,
-            test_loader,
-            postprocessor,
-            clustering)
-        output_tuprediction(opt.meta_file, x_lanes, times, opt.output_file)
-    else:
-        test(
-            model,
-            test_loader,
-            postprocessor,
-            clustering,
-            show_demo=opt.show_demo,
-            save_dir=opt.save_dir)
+    test(
+        checkpoint_opt,
+        model,
+        test_loader)
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-
     parser.add_argument(
         'model_file',
         type=str,
         help='path to the model file')
     parser.add_argument(
-        '--meta_file',
+        '--test_data_list',
         type=str,
-        help='path to the metadata file containing the testing labels info')
+        help='path to file contains list of image, label per line')
     parser.add_argument(
         '--output_file',
         type=str,
         help='path to the output file containing prediction info')
-    parser.add_argument(
-        '--image_dir',
-        type=str,
-        help='path to the image dir')
-    parser.add_argument(
-        '--save_dir',
-        type=str,
-        default=None,
-        help='path to the save dir')
-    parser.add_argument(
-        '--image_ext',
-        type=str,
-        default='png',
-        help='image extension, used to glob images based on its extension')
-    parser.add_argument(
-        '--loader_type',
-        type=str,
-        choices=['meta', 'dir', 'tutest'],
-        default='meta',
-        help='data loader type, dir: from a directory; meta: from a metadata file')
     parser.add_argument(
         '--batch_size',
         type=int,
         default=2,
         help='batch size')
     parser.add_argument(
+        '--crop_size_h',
+        type=int,
+        default=1024,
+        help='cropped image height')
+    parser.add_argument(
+        '--crop_size_w',
+        type=int,
+        default=2048,
+        help='cropped image width')
+    parser.add_argument(
         '--num_workers', type=int, default=0,
         help='number of workers (each worker use a process to load a batch of data)')
-    parser.add_argument(
-        '--show_demo', default=False, action='store_true',
-        help='whether to show output image or not. If not, the running time \
-        (fps) will be measured.')
-    parser.add_argument(
-        '--loglevel',
-        type=str,
-        default='DEBUG',
-        choices=[
-            'DEBUG',
-            'INFO',
-            'WARNING',
-            'ERROR',
-            'CRITICAL'])
 
     opt = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, opt.loglevel.upper()),
-                        format='%(asctime)s:%(levelname)s: %(message)s')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s:%(levelname)s: %(message)s')
 
     logger.info(
         'Input arguments: %s',
