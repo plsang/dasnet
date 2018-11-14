@@ -92,23 +92,24 @@ def test(opt, model, criterion, loader):
     model.eval()
 
     pbar = tqdm(loader)
-    for data in pbar:
-        images, labels, _, _ = data
+    with torch.no_grad():
+        for data in pbar:
+            images, labels, _, _ = data
 
-        images = Variable(images)
-        labels = Variable(labels.long())
+            images = Variable(images)
+            labels = Variable(labels.long())
 
-        if torch.cuda.is_available():
-            images = images.cuda()
-            labels = labels.cuda()
+            if torch.cuda.is_available():
+                images = images.cuda()
+                labels = labels.cuda()
 
-        preds = model(images)
-        loss = criterion(preds, labels)
+            preds = model(images)
+            loss = criterion(preds, labels)
 
-        val_loss.update(loss.item())
+            val_loss.update(loss.item())
 
-        pbar.set_description(
-            '>>> Validating loss={:.6f}'.format(loss.item()))
+            pbar.set_description(
+                '>>> Validating loss={:.6f}'.format(loss.item()))
 
     return val_loss
 
@@ -233,6 +234,11 @@ if __name__ == '__main__':
         '--val_data_list',
         type=str,
         help='path to file contains list of image, label per line')
+
+    parser.add_argument(
+        '--output_file',
+        type=str,
+        help='path to the output model file')
 
     parser.add_argument(
         '--dataset',
