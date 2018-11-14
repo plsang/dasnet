@@ -1,11 +1,13 @@
 # IN_DIR=/nas/datashare/datasets/tusimple-benchmark
 
 IN_DIR=/datashare/datasets/cityscapes 
-OUT_DIR=output
+# OUT_DIR=output
+OUT_DIR=/users/sang/works/drivablenet/output
 META_DIR=$(OUT_DIR)/metadata
 MODEL_DIR=$(OUT_DIR)/model
 
 MODEL_FILE=$(OUT_DIR)/model/model.pth
+RESULT_FILE=$(OUT_DIR)/result/output.json
 
 OCNET_ROOT=/users/sang/clones/OCNet
 
@@ -23,6 +25,14 @@ $(MODEL_FILE):
 		--val_data_list $(OCNET_ROOT)/dataset/list/cityscapes/val.lst \
 		--start-from $(START_FROM) \
 		--random-mirror --random-scale \
+		--crop_size_h 769 --crop_size_w 769 \
 		--num_workers 8 --batch_size 16 --num_epochs 50 \
 		--cnn_type resnet101 
+
+test: $(RESULT_FILE)
+$(RESULT_FILE): $(MODEL_FILE)
+	python src/test.py $^ \
+		--test_data_list $(OCNET_ROOT)/dataset/list/cityscapes/val.lst \
+		--crop_size_h 1024 --crop_size_w 2048 \
+		--output_file $@ 
 
