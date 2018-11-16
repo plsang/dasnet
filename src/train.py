@@ -316,7 +316,7 @@ if __name__ == '__main__':
         default=30,
         help='max number of epochs to run the training')
 
-    parser.add_argument('--lr_update', default=10, type=int,
+    parser.add_argument('--lr_update', default=30, type=int,
                         help='Number of epochs to update the learning rate.')
 
     parser.add_argument(

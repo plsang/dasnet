@@ -4,21 +4,17 @@ import numpy as np
 import numpy.ma as ma
 import json
 from datetime import datetime
-import matplotlib.pyplot as plt
-import cv2
 import time
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
 import logging
 from tqdm import tqdm
-import warnings
 
 from dataloader import get_data_loader
 from models import get_model
-from utils.criterion import CriterionDSN
-from utils.utils import AverageMeter, adjust_learning_rate
-from utils.parallel import DataParallelModel, DataParallelCriterion
+from utils.utils import AverageMeter
+from utils.parallel import DataParallelModel
 
 logger = logging.getLogger(__name__)
 # warnings.filterwarnings('ignore')
@@ -61,7 +57,6 @@ def test(opt, model, loader):
 
     """
 
-    val_loss = AverageMeter()
     model.eval()
 
     run_time = AverageMeter()

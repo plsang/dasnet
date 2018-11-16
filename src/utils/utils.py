@@ -247,3 +247,11 @@ class AverageMeter(object):
             return str(self.val)
         # for stats
         return '%.4f (%.4f)' % (self.val, self.avg)
+
+
+def load_weights_sequential(target, source_state):
+    """
+    cf. https://github.com/Lextal/pspnet-pytorch/issues/3
+    """
+    model_to_load= {k: v for k, v in source_state.items() if k in target.state_dict().keys()}
+    target.load_state_dict(model_to_load)

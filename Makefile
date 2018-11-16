@@ -6,7 +6,8 @@ OUT_DIR=/users/sang/works/drivablenet/output
 META_DIR=$(OUT_DIR)/metadata
 MODEL_DIR=$(OUT_DIR)/model
 
-MODEL_FILE=$(OUT_DIR)/model/model.pth
+#MODEL_FILE=$(OUT_DIR)/model/model_b16.pth
+MODEL_FILE=$(OUT_DIR)/model/model_lr001.pth
 RESULT_FILE=$(OUT_DIR)/result/output.json
 
 OCNET_ROOT=/users/sang/clones/OCNet
@@ -26,7 +27,8 @@ $(MODEL_FILE):
 		--start-from $(START_FROM) \
 		--random-mirror --random-scale \
 		--crop_size_h 769 --crop_size_w 769 \
-		--num_workers 8 --batch_size 16 --num_epochs 50 \
+		--num_workers 8 --batch_size 16 \
+		--num_epochs 100 --max_patience 50 --learning_rate 0.001 --lr_update 30 \
 		--cnn_type resnet101 
 
 test: $(RESULT_FILE)
@@ -34,5 +36,6 @@ $(RESULT_FILE): $(MODEL_FILE)
 	python src/test.py $^ \
 		--test_data_list $(OCNET_ROOT)/dataset/list/cityscapes/val.lst \
 		--crop_size_h 1024 --crop_size_w 2048 \
+		--batch_size 1 --num_workers 8\
 		--output_file $@ 
 

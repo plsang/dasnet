@@ -50,7 +50,7 @@ spec:
     - name: "nvidia-gpu"
       resources:
         limits:
-          nvidia.com/gpu: 2
+          nvidia.com/gpu: 4
       affinity:
         required:
           - key: "nvidia.com/gpu-memory"
