@@ -6,8 +6,8 @@ OUT_DIR=/users/sang/works/drivablenet/output
 META_DIR=$(OUT_DIR)/metadata
 MODEL_DIR=$(OUT_DIR)/model
 
-#MODEL_FILE=$(OUT_DIR)/model/model_b16.pth
-MODEL_FILE=$(OUT_DIR)/model/model_lr001.pth
+MODEL_FILE=$(OUT_DIR)/model/model_b16.pth
+#MODEL_FILE=$(OUT_DIR)/model/model_lr001.pth
 RESULT_FILE=$(OUT_DIR)/result/output.json
 
 OCNET_ROOT=/users/sang/clones/OCNet

@@ -10,6 +10,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import logging
 from tqdm import tqdm
+from torch.nn.parallel.scatter_gather import gather
 
 from dataloader import get_data_loader
 from models import get_model
@@ -76,6 +77,7 @@ def test(opt, model, loader):
                 images = images.cuda()
 
             preds = model(images)
+            preds = gather(preds, 0, dim=0)
             if 'dsn' in opt.model_type:
                 preds = preds[-1]
 
@@ -134,6 +136,13 @@ def main(opt):
     # file
     vars(checkpoint_opt).update(vars(opt))
 
+    logger.info(
+        'Updated input arguments: %s',
+        json.dumps(
+            vars(checkpoint_opt),
+            sort_keys=True,
+            indent=4))
+
     logger.info('Building model...')
     model = get_model(checkpoint_opt, num_classes=checkpoint_opt.num_classes)
 
@@ -187,6 +196,18 @@ if __name__ == '__main__':
         type=int,
         default=2048,
         help='cropped image width')
+    parser.add_argument(
+        '--random-scale',
+        default=False,
+        action='store_true',
+        help='random scaling at training')
+
+    parser.add_argument(
+        '--random-mirror',
+        default=False,
+        action='store_true',
+        help='random mirroring at training')
+
     parser.add_argument(
         '--num_workers', type=int, default=0,
         help='number of workers (each worker use a process to load a batch of data)')
