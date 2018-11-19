@@ -257,7 +257,7 @@ if __name__ == '__main__':
         help='The CNN backbone (e.g. vgg19, resnet152)')
 
     parser.add_argument(
-        '--start-from',
+        '--start_from',
         type=str,
         help='Path to the pre-trained model')
 
@@ -287,19 +287,19 @@ if __name__ == '__main__':
         help='cropped image width')
 
     parser.add_argument(
-        '--random-scale',
+        '--random_scale',
         default=False,
         action='store_true',
         help='random scaling at training')
 
     parser.add_argument(
-        '--random-mirror',
+        '--random_mirror',
         default=False,
         action='store_true',
         help='random mirroring at training')
 
     parser.add_argument(
-        '--ignore-label',
+        '--ignore_label',
         type=int,
         default=255,
         help='ignore classes having this label from training')

@@ -1,7 +1,6 @@
 import argparse
 import os
 import numpy as np
-import numpy.ma as ma
 import json
 from datetime import datetime
 import time
@@ -11,6 +10,7 @@ import torch.nn.functional as F
 import logging
 from tqdm import tqdm
 from torch.nn.parallel.scatter_gather import gather
+from PIL import Image
 
 from dataloader import get_data_loader
 from models import get_model
@@ -20,6 +20,37 @@ from utils.parallel import DataParallelModel
 logger = logging.getLogger(__name__)
 # warnings.filterwarnings('ignore')
 
+def get_palette(num_cls):
+    """ Returns the color map for visualizing the segmentation mask.
+    Cf. https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
+    Args:
+        num_cls: Number of classes
+    Returns:
+        The color map
+    """
+
+    palette = [0] * (num_cls * 3)
+    palette[0:3] = (128, 64, 128)       # 0: 'road'
+    palette[3:6] = (244, 35, 232)        # 1 'sidewalk'
+    palette[6:9] = (70, 70, 70)         # 2''building'
+    palette[9:12] = (102, 102,156)       # 3 wall
+    palette[12:15] =  (190, 153,153)     # 4 fence
+    palette[15:18] = (153, 153,153)      # 5 pole
+    palette[18:21] = (250, 170, 30)      # 6 'traffic light'
+    palette[21:24] = (220, 220, 0)       # 7 'traffic sign'
+    palette[24:27] = (107, 142, 35)      # 8 'vegetation'
+    palette[27:30] = (152, 251,152)      # 9 'terrain'
+    palette[30:33] = ( 70, 130,180)      # 10 sky
+    palette[33:36] = (220, 20, 60)      # 11 person
+    palette[36:39] = (255, 0, 0)        # 12 rider
+    palette[39:42] = (0, 0, 142)        # 13 car
+    palette[42:45] = (0, 0, 70)         # 14 truck
+    palette[45:48] = (0, 60,100)        # 15 bus
+    palette[48:51] = (0, 80,100)        # 16 train
+    palette[51:54] = (0, 0,230)         # 17 'motorcycle'
+    palette[54:57] = (119, 11, 32)      # 18 'bicycle'
+    palette[57:60] = (105, 105, 105)
+    return palette
 
 def get_confusion_matrix(gt_label, pred_label, class_num):
     """
@@ -63,11 +94,12 @@ def test(opt, model, loader):
     run_time = AverageMeter()
     end = time.time()
     confusion_matrix = np.zeros((opt.num_classes, opt.num_classes))
+    palette = get_palette(20)
 
     pbar = tqdm(loader)
     with torch.no_grad():
         for data in pbar:
-            images, labels, sizes, _ = data
+            images, labels, sizes, image_names = data
             sizes = sizes[0].numpy()
 
             images = Variable(images)
@@ -87,29 +119,32 @@ def test(opt, model, loader):
             output = full_preds.cpu().data.numpy().transpose(0, 2, 3, 1)
 
             seg_pred = np.asarray(np.argmax(output, axis=3), dtype=np.uint8)
-            m_seg_pred = ma.masked_array(
-                seg_pred, mask=torch.eq(
-                    labels, opt.ignore_label))
-            ma.set_fill_value(m_seg_pred, 20)
-            seg_pred = m_seg_pred
 
-            seg_gt = np.asarray(
-                labels.numpy()[
-                    :,
-                    :sizes[0],
-                    :sizes[1]],
-                dtype=np.int)
-            ignore_index = seg_gt != opt.ignore_label
-            seg_gt = seg_gt[ignore_index]
-            seg_pred = seg_pred[ignore_index]
-            confusion_matrix += get_confusion_matrix(
-                seg_gt, seg_pred, opt.num_classes)
+            # store images
+            if opt.store_output:
+                for i in range(N_):
+                    output_im = Image.fromarray(seg_pred[i])
+                    output_im.putpalette(palette)
+                    output_file = os.path.join(opt.output_dir, image_names[i]+'.png')
+                    output_im.save(output_file)
+
+            if len(labels) > 0:
+                seg_gt = np.asarray(
+                    labels.numpy()[
+                        :,
+                        :sizes[0],
+                        :sizes[1]],
+                    dtype=np.int)
+                ignore_index = seg_gt != opt.ignore_label
+                seg_gt = seg_gt[ignore_index]
+                seg_pred = seg_pred[ignore_index]
+                confusion_matrix += get_confusion_matrix(
+                    seg_gt, seg_pred, opt.num_classes)
 
             # measure speed test
-            bs = images.shape[0]
             run_time.update(time.time() - end)
             end = time.time()
-            fps = bs/run_time.avg
+            fps = N_/run_time.avg
             pbar.set_description(
                 'Average run time: {fps:.3f} fps'.format(
                     fps=fps))
@@ -182,6 +217,11 @@ if __name__ == '__main__':
         type=str,
         help='path to the output file containing prediction info')
     parser.add_argument(
+        '--image_ext',
+        type=str,
+        default='png',
+        help='image extension')
+    parser.add_argument(
         '--batch_size',
         type=int,
         default=2,
@@ -197,16 +237,27 @@ if __name__ == '__main__':
         default=2048,
         help='cropped image width')
     parser.add_argument(
-        '--random-scale',
+        '--random_scale',
         default=False,
         action='store_true',
         help='random scaling at training')
 
     parser.add_argument(
-        '--random-mirror',
+        '--random_mirror',
         default=False,
         action='store_true',
         help='random mirroring at training')
+
+    parser.add_argument(
+        '--store_output',
+        default=False,
+        action='store_true',
+        help='write output image to output directory')
+
+    parser.add_argument(
+        '--output_dir',
+        type=str,
+        help='output directory to write images to')
 
     parser.add_argument(
         '--num_workers', type=int, default=0,
