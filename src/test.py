@@ -11,6 +11,7 @@ import logging
 from tqdm import tqdm
 from torch.nn.parallel.scatter_gather import gather
 from PIL import Image
+import cv2
 
 from dataloader import get_data_loader
 from models import get_model
@@ -49,7 +50,8 @@ def get_palette(num_cls):
     palette[48:51] = (0, 80,100)        # 16 train
     palette[51:54] = (0, 0,230)         # 17 'motorcycle'
     palette[54:57] = (119, 11, 32)      # 18 'bicycle'
-    palette[57:60] = (105, 105, 105)
+    # palette[57:60] = (105, 105, 105)
+    palette[57:60] = (0, 0, 0)
     return palette
 
 def get_confusion_matrix(gt_label, pred_label, class_num):
@@ -99,7 +101,7 @@ def test(opt, model, loader):
     pbar = tqdm(loader)
     with torch.no_grad():
         for data in pbar:
-            images, labels, sizes, image_names = data
+            images, labels, sizes, image_names, org_images = data
             sizes = sizes[0].numpy()
 
             images = Variable(images)
@@ -127,6 +129,17 @@ def test(opt, model, loader):
                     output_im.putpalette(palette)
                     output_file = os.path.join(opt.output_dir, image_names[i]+'.png')
                     output_im.save(output_file)
+
+                    src_img = org_images[i].data.numpy()
+                    drivable_img = np.where(seg_pred[i]==0, 0, 19).astype(np.uint8)
+                    drivable_img = Image.fromarray(drivable_img)
+                    drivable_img.putpalette(palette)
+                    drivable_img = np.array(drivable_img.convert('RGB')).astype(src_img.dtype)
+                    #overlay_img = cv2.addWeighted(src_img, 1.0, drivable_img, 1.0, 0)
+                    src_img[drivable_img > 0] = 0
+                    overlay_img = cv2.add(src_img, drivable_img)
+                    output_file = os.path.join(opt.output_dir, image_names[i] + '_drivable.png')
+                    cv2.imwrite(output_file, cv2.cvtColor(overlay_img, cv2.COLOR_RGB2BGR))
 
             if len(labels) > 0:
                 seg_gt = np.asarray(

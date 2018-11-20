@@ -104,6 +104,7 @@ class CityscapesDataloader(data.Dataset):
 
         datafiles = self.files[index]
         image = cv2.imread(datafiles["img"], cv2.IMREAD_COLOR)
+        org_image = image.copy()
         if datafiles["label"]:
             label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
             label = self.id2trainId(label)
@@ -147,6 +148,7 @@ class CityscapesDataloader(data.Dataset):
             # if image size > crop_size, then do resizing
             if image.shape[0] > self.crop_h and image.shape[1] > self.crop_w:
                 image = cv2.resize(image, (self.crop_w, self.crop_h), interpolation = cv2.INTER_LINEAR)
+                org_image = cv2.resize(org_image, (self.crop_w, self.crop_h), interpolation = cv2.INTER_LINEAR)
 
         # get c x h x w images
         image = image.transpose((2, 0, 1))
@@ -157,9 +159,9 @@ class CityscapesDataloader(data.Dataset):
             label = label[:, ::flip]
 
         if label is not None:
-            return image.copy(), label.copy(), np.array(size), name
+            return image.copy(), label.copy(), np.array(size), name, org_image
         else:
-            return image.copy(), {}, np.array(size), name
+            return image.copy(), {}, np.array(size), name, org_image
 
 
     def __len__(self):
