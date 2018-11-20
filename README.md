@@ -1,47 +1,53 @@
-# dasnet - Drivable Area Segmentation
+# DASNet - Drivable Area Segmentation Networks
 
-Pytorch implementation of drivable area segmentation detection networks. This is mainly based on the approach proposed in [Towards End-to-End Lane Detection: an Instance Segmentation Approach](https://arxiv.org/abs/1802.05591). This model simultaneously optimizes a binary semantic segmentation network using cross entropy loss, and a (lane) instance semantic segmentation using discriminative loss.
+Pytorch implementation of drivable area segmentation detection networks. 
+
+# TODO
+- [x] Getting started from this [OCNet project](https://github.com/PkuRainBow/OCNet) (they reported latest SoA results, Pytorch implementation, and can be combined with other networks like PSPNet and Deeplab)
+  - [x] Train and test on CityScapes dataset (Their results on the val set of Cityscapes is ~79.5 mIoU, ours is ~78.7 mIoU)
+  - [x] Test on our dataset
+- [ ] Redesign to support multiple datasets and multiple segmentation networks
+  - [ ] Train and test on another datasat like ADE20K or BDD dataset
+  - [ ] Implement popular segmentation networks like PSPNet, Deeplab variants.
 
 ## Installation
-This code has been tested on ubuntu 16.04(x64), python3.7, pytorch-0.4.1, cuda-9.0 with a GTX-1060 GPU. 
-The Python environment can be imported from the `requirements.txt` file:
-```
-pip install -r requirements.txt
-```
+- Docker image: `ascent-docker.zapto.org:443/ocnet`
 
-## Download data
-- Edit the Makefile file and set the input directory $(IN_DIR) location. This is place where the dataset will be stored. If you already downloaded the data, then you can skip this step.
-- Download [TuSimple dataset](https://github.com/TuSimple/tusimple-benchmark/wiki): `make download`.  Then extract the data.
-
-## Generate train/val/test splits
-- Run: `make matadata` to generate train/val/test split. Note that currently the test labels are not available, so we cannot do the quantitative evaluation yet. 
+## Dataset
+- Cityscapes: `/datashare/datasets/cityscapes`
+- Ascent images: `/users/yizhou/rosbags`
 
 ## Train model
 - Run `make train`
 
 ```
-usage: train.py [-h] [--image_dir IMAGE_DIR] [--cnn_type {unet}]
-                [--batch_size BATCH_SIZE] [--width WIDTH] [--height HEIGHT]
-                [--thickness THICKNESS] [--max_lanes MAX_LANES]
-                [--learning_rate LEARNING_RATE] [--num_epochs NUM_EPOCHS]
-                [--lr_update LR_UPDATE] [--max_patience MAX_PATIENCE]
-                [--val_step VAL_STEP] [--num_workers NUM_WORKERS]
-                [--log_step LOG_STEP]
-                [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--seed SEED]
-                meta_file output_file
+usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
+                [--val_data_list VAL_DATA_LIST] [--output_file OUTPUT_FILE]
+                [--dataset {cityscapes}] [--model_type {asp_oc_dsn}]
+                [--cnn_type {resnet101}] [--start_from START_FROM]
+                [--batch_size BATCH_SIZE] [--num_classes NUM_CLASSES]
+                [--crop_size_h CROP_SIZE_H] [--crop_size_w CROP_SIZE_W]
+                [--random_scale] [--random_mirror]
+                [--ignore_label IGNORE_LABEL] [--learning_rate LEARNING_RATE]
+                [--num_epochs NUM_EPOCHS] [--lr_update LR_UPDATE]
+                [--max_patience MAX_PATIENCE] [--val_step VAL_STEP]
+                [--num_workers NUM_WORKERS] [--dsn_weight DSN_WEIGHT]
+                [--log_step LOG_STEP] [--seed SEED]
 ```
 
 ## Test model
 - Run `make test`
 
 ```
-usage: test.py [-h] [--image_dir IMAGE_DIR] [--batch_size BATCH_SIZE]
+usage: test.py [-h] [--test_data_list TEST_DATA_LIST]
+               [--output_file OUTPUT_FILE] [--image_ext IMAGE_EXT]
+               [--batch_size BATCH_SIZE] [--crop_size_h CROP_SIZE_H]
+               [--crop_size_w CROP_SIZE_W] [--random_scale] [--random_mirror]
+               [--store_output] [--output_dir OUTPUT_DIR]
                [--num_workers NUM_WORKERS]
-               [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-               meta_file model_file
+               model_file
+
 ```
 
 ## Acknowledgements
-- [Implemention of lanenet model for real time lane detection using deep neural network model](https://github.com/MaybeShewill-CV/lanenet-lane-detection)
-- [Semantic Instance Segmentation with a Discriminative Loss Function in PyTorch](https://github.com/Wizaron/instance-segmentation-pytorch)
-- [Implementation of discriminative loss for instance segmentation by pytorch](https://github.com/nyoki-mtl/pytorch-discriminative-loss)
+- [OCNet: Object Context Network for Scene Parsing](https://github.com/PkuRainBow/OCNet)
