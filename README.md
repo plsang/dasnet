@@ -1,6 +1,6 @@
-# LaneNet - Lane Detection Using Neural Networks
+# dasnet - Drivable Area Segmentation
 
-Pytorch implementation of lane detection networks. This is mainly based on the approach proposed in [Towards End-to-End Lane Detection: an Instance Segmentation Approach](https://arxiv.org/abs/1802.05591). This model simultaneously optimizes a binary semantic segmentation network using cross entropy loss, and a (lane) instance semantic segmentation using discriminative loss.
+Pytorch implementation of drivable area segmentation detection networks. This is mainly based on the approach proposed in [Towards End-to-End Lane Detection: an Instance Segmentation Approach](https://arxiv.org/abs/1802.05591). This model simultaneously optimizes a binary semantic segmentation network using cross entropy loss, and a (lane) instance semantic segmentation using discriminative loss.
 
 ## Installation
 This code has been tested on ubuntu 16.04(x64), python3.7, pytorch-0.4.1, cuda-9.0 with a GTX-1060 GPU. 
@@ -40,9 +40,6 @@ usage: test.py [-h] [--image_dir IMAGE_DIR] [--batch_size BATCH_SIZE]
                [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                meta_file model_file
 ```
-
-## Demo
-   Check out the notebook to view groundtruth data [here](notebooks/view_groundtruth.ipynb), and to view examples of prediction results [here](notebooks/view_prediction.ipynb).
 
 ## Acknowledgements
 - [Implemention of lanenet model for real time lane detection using deep neural network model](https://github.com/MaybeShewill-CV/lanenet-lane-detection)
