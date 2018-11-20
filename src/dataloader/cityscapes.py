@@ -104,7 +104,7 @@ class CityscapesDataloader(data.Dataset):
 
         datafiles = self.files[index]
         image = cv2.imread(datafiles["img"], cv2.IMREAD_COLOR)
-        org_image = image.copy()
+        org_image = image[:,:,::-1].copy()
         if datafiles["label"]:
             label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
             label = self.id2trainId(label)

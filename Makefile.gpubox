@@ -64,3 +64,11 @@ test_4: $(MODEL_FILE)
 		--crop_size_h 1024 --crop_size_w 2048 \
 		--batch_size 8 --num_workers 8\
 		--store_output --output_dir $(OUT_DIR)/images/top_down_view_university_back_4
+
+test_20180914: $(MODEL_FILE)
+	CUDA_VISIBLE_DEVICES=$(GID) python src/test.py $^ \
+		--test_data_list /users/sang/datasets/20180914 \
+		--crop_size_h 1024 --crop_size_w 2048 \
+		--batch_size 8 --num_workers 8\
+		--store_output --output_dir $(OUT_DIR)/images/20180914
+
