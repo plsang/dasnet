@@ -19,6 +19,7 @@ Pytorch implementation of drivable area segmentation detection networks.
 
 ## Train model
 - Run `make train`
+- Train on `dgx01`: `kubectl create -f config/dnet.yml`
 
 ```
 usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
@@ -37,6 +38,7 @@ usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
 
 ## Test model
 - Run `make test`
+- Test on `dgx01`: `kubectl create -f config/dnet_test.yml`
 
 ```
 usage: test.py [-h] [--test_data_list TEST_DATA_LIST]
