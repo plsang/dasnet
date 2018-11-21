@@ -40,10 +40,4 @@ $(RESULT_FILE): $(MODEL_FILE)
 		--batch_size 1 --num_workers 8\
 		--output_file $@ 
 
-test_1: $(RESULT_FILE)
-$(RESULT_FILE): $(MODEL_FILE)
-	python src/test.py $^ \
-		--data_dir /users/yizhou/rosbags/top_down_view_university_back_0 \
-		--crop_size_h 1024 --crop_size_w 2048 \
-		--batch_size 1 --num_workers 8\
-		--output_file $@ 
+

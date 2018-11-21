@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dsnet
+  name: dsnet-test
 spec:
   volumes:
     - name: dshm
@@ -27,7 +27,7 @@ spec:
     - name: ocnet
       image: ascent-docker.zapto.org:443/ocnet
       command: ["/bin/bash"]
-      args: ["-c", "cd /users/sang/works/drivablenet; make train"]
+      args: ["-c", "cd /users/sang/works/dasnet; make test"]
       extendedResourceRequests: ["nvidia-gpu"]
  
       resources:
@@ -50,7 +50,7 @@ spec:
     - name: "nvidia-gpu"
       resources:
         limits:
-          nvidia.com/gpu: 4
+          nvidia.com/gpu: 2 
       affinity:
         required:
           - key: "nvidia.com/gpu-memory"
