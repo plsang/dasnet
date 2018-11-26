@@ -26,7 +26,7 @@ class CityscapesDataloader(data.Dataset):
     Load raw images and labels
     """
 
-    def __init__(self, opt, split='train', data_list=None):
+    def __init__(self, opt, training=True, return_org_image=False, data_list=None):
         super(CityscapesDataloader, self).__init__()
 
         self.crop_h, self.crop_w = opt.crop_size_h, opt.crop_size_w
@@ -35,7 +35,8 @@ class CityscapesDataloader(data.Dataset):
         self.ignore_label = opt.ignore_label
         self.cnn_type = opt.cnn_type
         self.id_to_trainid = self.__id_to_trainid()
-        self.training = split == 'train'
+        self.training = training
+        self.return_org_image = return_org_image
 
         # if data_list is a directory, load all images from that one
         # this is used at testing time where a directory is given,
@@ -104,12 +105,14 @@ class CityscapesDataloader(data.Dataset):
 
         datafiles = self.files[index]
         image = cv2.imread(datafiles["img"], cv2.IMREAD_COLOR)
-        org_image = image[:,:,::-1].copy()
+        if self.return_org_image:
+            org_image = image[:,:,::-1].copy()
+
         if datafiles["label"]:
             label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
             label = self.id2trainId(label)
         else:
-            label = None
+            label = {}
         size = image.shape
         name = datafiles["name"]
 
@@ -122,7 +125,7 @@ class CityscapesDataloader(data.Dataset):
             image = image[:,:,::-1]
             image -= mean
 
-        if label is not None:
+        if datafiles["label"]:
             # if image size < crop_size, then do padding with 0
             img_h, img_w = label.shape
             pad_h = max(self.crop_h - img_h, 0)
@@ -148,7 +151,8 @@ class CityscapesDataloader(data.Dataset):
             # if image size > crop_size, then do resizing
             if image.shape[0] > self.crop_h and image.shape[1] > self.crop_w:
                 image = cv2.resize(image, (self.crop_w, self.crop_h), interpolation = cv2.INTER_LINEAR)
-                org_image = cv2.resize(org_image, (self.crop_w, self.crop_h), interpolation = cv2.INTER_LINEAR)
+                if self.return_org_image:
+                    org_image = cv2.resize(org_image, (self.crop_w, self.crop_h), interpolation = cv2.INTER_LINEAR)
 
         # get c x h x w images
         image = image.transpose((2, 0, 1))
@@ -158,10 +162,10 @@ class CityscapesDataloader(data.Dataset):
             image = image[:, :, ::flip]
             label = label[:, ::flip]
 
-        if label is not None:
+        if self.return_org_image:
             return image.copy(), label.copy(), np.array(size), name, org_image
         else:
-            return image.copy(), {}, np.array(size), name, org_image
+            return image.copy(), label.copy(), np.array(size), name
 
 
     def __len__(self):

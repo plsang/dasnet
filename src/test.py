@@ -196,7 +196,8 @@ def main(opt):
 
     test_loader = get_data_loader(
         checkpoint_opt,
-        split='test',
+        training=False,
+        return_org_image=True,
         data_list=opt.test_data_list)
 
     logger.info('Loading model parameters...')

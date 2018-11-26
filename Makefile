@@ -2,9 +2,10 @@
 
 IN_DIR=/datashare/datasets/cityscapes 
 # OUT_DIR=output
-OUT_DIR=/users/sang/works/drivablenet/output
+OUT_DIR=/users/sang/works/dasnet/output
 META_DIR=$(OUT_DIR)/metadata
 MODEL_DIR=$(OUT_DIR)/model
+LOG_DIR=$(OUT_DIR)/logs
 
 #MODEL_FILE=$(OUT_DIR)/model/model_b16.pth
 #MODEL_FILE=$(OUT_DIR)/model/model_lr001.pth
@@ -15,11 +16,12 @@ OCNET_ROOT=/users/sang/clones/OCNet
 
 START_FROM=$(OCNET_ROOT)/pretrained_model/resnet101-imagenet.pth
 
+MODEL_TYPES=baseline base_oc_dsn pyramid_oc_dsn asp_oc_dsn
 metadata:
 	echo 'Not implemented yet'
 
-train: $(MODEL_FILE)
-$(MODEL_FILE): 
+train: $(patsubst %,$(OUT_DIR)/model/model_%_lr0001.pth,$(MODEL_TYPES))
+$(OUT_DIR)/model/model_%_lr0001.pth:
 	python src/train.py \
 		--output_file $@ \
 		--data_dir $(IN_DIR) \
@@ -30,7 +32,8 @@ $(MODEL_FILE):
 		--crop_size_h 769 --crop_size_w 769 \
 		--num_workers 8 --batch_size 16 \
 		--num_epochs 100 --max_patience 50 --learning_rate 0.0001 --lr_update 50 \
-		--cnn_type resnet101 
+		--cnn_type resnet101 --model_type $* \
+		2>&1 | tee $(LOG_DIR)/model_$*_lr0001.log 
 
 test: $(RESULT_FILE)
 $(RESULT_FILE): $(MODEL_FILE)

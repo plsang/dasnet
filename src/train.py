@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from dataloader import get_data_loader
 from models import get_model
-from utils.criterion import CriterionDSN
+from utils.criterion import CriterionDSN, CriterionCrossEntropy
 from utils.utils import AverageMeter, adjust_learning_rate
 from utils.parallel import DataParallelModel, DataParallelCriterion
 
@@ -121,11 +121,13 @@ def main(opt):
         torch.manual_seed(opt.seed)
 
     train_loader = get_data_loader(opt,
-                                   split='train',
+                                   training=True,
+                                   return_org_image=False,
                                    data_list=opt.train_data_list)
 
     val_loader = get_data_loader(opt,
-                                 split='val',
+                                 training=False,
+                                 return_org_image=False,
                                  data_list=opt.val_data_list)
 
     logger.info('Building model...')
@@ -143,8 +145,11 @@ def main(opt):
 
     model = DataParallelModel(model)
 
-    # criterion = CriterionCrossEntropy()
-    criterion = CriterionDSN(dsn_weight=float(opt.dsn_weight), use_weight=True)
+    if 'dsn' in opt.model_type:
+        criterion = CriterionDSN(dsn_weight=float(opt.dsn_weight), use_weight=True)
+    else:
+        criterion = CriterionCrossEntropy()
+
     criterion = DataParallelCriterion(criterion)
 
     optimizer = optim.Adam(model.parameters(), lr=opt.learning_rate)
@@ -247,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--model_type',
         default='asp_oc_dsn',
-        choices=['asp_oc_dsn'],
+        choices=['baseline', 'base_oc_dsn', 'pyramid_oc_dsn', 'asp_oc_dsn'],
         help='type of models (like ocnet, pspnet, deeplab, etc)')
 
     parser.add_argument(
