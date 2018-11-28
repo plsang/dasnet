@@ -1,9 +1,11 @@
 from .cityscapes import CityscapesDataloader
+from .bdd import BDDDataloader
 
 import torch.utils.data as data
 
 datasets = {
 	'cityscapes': CityscapesDataloader,
+	'bdd': BDDDataloader,
 }
 
 

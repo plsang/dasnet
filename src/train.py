@@ -245,7 +245,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--dataset',
         default='cityscapes',
-        choices=['cityscapes'],
+        choices=['cityscapes', 'bdd'],
         help='Name of dataset')
 
     # Model settings
