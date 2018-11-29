@@ -54,6 +54,13 @@ class BDDDataloader(data.Dataset):
 
         logger.info('{} images are loaded!'.format(len(self.img_ids)))
 
+    def id2trainId(self, label):
+        label_copy = label.copy()
+        # 0 for background, 1 for direct drivable area and 2 for alternative drivable area.
+        # ==> -1 for background, 0 for direct drivable area and 1 for alternative drivable area.
+        label_copy -= 1
+        return label_copy
+
     def generate_scale_label(self, image, label):
         f_scale = 0.5 + random.randint(0, 16) / 10.0
         image = cv2.resize(image, None, fx=f_scale, fy=f_scale, interpolation = cv2.INTER_LINEAR)
@@ -69,6 +76,7 @@ class BDDDataloader(data.Dataset):
 
         if datafiles["label"]:
             label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
+            label = self.id2trainId(label)
         else:
             label = {}
         size = image.shape
