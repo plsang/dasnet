@@ -2,6 +2,7 @@ import sys
 import time
 import json
 import argparse
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
@@ -9,15 +10,16 @@ import torch.optim as optim
 import logging
 from datetime import datetime
 from tqdm import tqdm
+import torch.nn.functional as F
+from torch.nn.parallel.scatter_gather import gather
 
 from dataloader import get_data_loader
 from models import get_model
 from utils.criterion import CriterionDSN, CriterionCrossEntropy
 from utils.utils import AverageMeter, adjust_learning_rate
 from utils.parallel import DataParallelModel, DataParallelCriterion
-
+from utils.metrics import batch_pix_accuracy, batch_intersection_union
 logger = logging.getLogger(__name__)
-
 
 def train(opt, model, criterion, optimizer, loader):
     """
@@ -89,6 +91,7 @@ def test(opt, model, criterion, loader):
     val_loss = AverageMeter()
     model.eval()
 
+    total_inter, total_union, total_correct, total_label = 0, 0, 0, 0
     pbar = tqdm(loader)
     with torch.no_grad():
         for data in pbar:
@@ -103,11 +106,31 @@ def test(opt, model, criterion, loader):
 
             preds = model(images)
             loss = criterion(preds, labels)
-
             val_loss.update(loss.item())
 
+            # compute pixAcc and mIoU at batch level
+            preds = gather(preds, 0, dim=0)
+            if 'dsn' in opt.model_type:
+                preds = preds[-1]
+
+            N_, C_, H_, W_ = images.shape
+            preds = F.upsample(
+                input=preds, size=(H_, W_),
+                mode='bilinear', align_corners=True)
+
+            correct, labeled = batch_pix_accuracy(preds.data, labels)
+            inter, union = batch_intersection_union(preds.data, labels, opt.num_classes)
+            total_correct += correct
+            total_label += labeled
+            total_inter += inter
+            total_union += union
+            pixAcc = 1.0 * total_correct / (np.spacing(1) + total_label)
+            IoU = 1.0 * total_inter / (np.spacing(1) + total_union)
+            mIoU = IoU.mean()
+
             pbar.set_description(
-                '>>> Validating loss={:.6f}'.format(loss.item()))
+                '>>> Validating loss={:.6f}, pixAcc={:.6f}, mIoU={:.6f}'.format(
+                    loss.item(), pixAcc, mIoU))
 
     return val_loss
 

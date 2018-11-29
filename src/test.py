@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import logging
 from tqdm import tqdm
 from torch.nn.parallel.scatter_gather import gather
+from utils.metrics import batch_pix_accuracy, batch_intersection_union
 from PIL import Image
 import cv2
 
@@ -54,27 +55,6 @@ def get_palette(num_cls):
     palette[57:60] = (0, 0, 0)
     return palette
 
-def get_confusion_matrix(gt_label, pred_label, class_num):
-    """
-    Calcute the confusion matrix by given label and pred
-    :param gt_label: the ground truth label
-    :param pred_label: the pred label
-    :param class_num: the nunber of class
-    :return: the confusion matrix
-    """
-    index = (gt_label * class_num + pred_label).astype('int32')
-    label_count = np.bincount(index)
-    confusion_matrix = np.zeros((class_num, class_num))
-
-    for i_label in range(class_num):
-        for i_pred_label in range(class_num):
-            cur_index = i_label * class_num + i_pred_label
-            if cur_index < len(label_count):
-                confusion_matrix[i_label,
-                                 i_pred_label] = label_count[cur_index]
-
-    return confusion_matrix
-
 
 def test(opt, model, loader):
     """
@@ -95,9 +75,9 @@ def test(opt, model, loader):
 
     run_time = AverageMeter()
     end = time.time()
-    confusion_matrix = np.zeros((opt.num_classes, opt.num_classes))
     palette = get_palette(20)
 
+    total_inter, total_union, total_correct, total_label = 0, 0, 0, 0
     pbar = tqdm(loader)
     with torch.no_grad():
         for data in pbar:
@@ -115,10 +95,10 @@ def test(opt, model, loader):
             if 'dsn' in opt.model_type:
                 preds = preds[-1]
 
-            full_preds = F.upsample(
+            preds = F.upsample(
                 input=preds, size=(H_, W_),
                 mode='bilinear', align_corners=True)
-            output = full_preds.cpu().data.numpy().transpose(0, 2, 3, 1)
+            output = preds.cpu().data.numpy().transpose(0, 2, 3, 1)
 
             seg_pred = np.asarray(np.argmax(output, axis=3), dtype=np.uint8)
 
@@ -142,35 +122,27 @@ def test(opt, model, loader):
                     cv2.imwrite(output_file, cv2.cvtColor(overlay_img, cv2.COLOR_RGB2BGR))
 
             if len(labels) > 0:
-                seg_gt = np.asarray(
-                    labels.numpy()[
-                        :,
-                        :sizes[0],
-                        :sizes[1]],
-                    dtype=np.int)
-                ignore_index = seg_gt != opt.ignore_label
-                seg_gt = seg_gt[ignore_index]
-                seg_pred = seg_pred[ignore_index]
-                confusion_matrix += get_confusion_matrix(
-                    seg_gt, seg_pred, opt.num_classes)
+                labels[labels == opt.ignore_label] = -1 #
+                correct, labeled = batch_pix_accuracy(preds.data, labels)
+                inter, union = batch_intersection_union(preds.data, labels, opt.num_classes)
+                total_correct += correct
+                total_label += labeled
+                total_inter += inter
+                total_union += union
+                pixAcc = 1.0 * total_correct / (np.spacing(1) + total_label)
+                IoU = 1.0 * total_inter / (np.spacing(1) + total_union)
+                mIoU = IoU.mean()
 
             # measure speed test
             run_time.update(time.time() - end)
             end = time.time()
             fps = N_/run_time.avg
             pbar.set_description(
-                'Average run time: {fps:.3f} fps'.format(
-                    fps=fps))
+                'Average run time: {:.3f} fps, pixAcc={:.6f}, mIoU={:.6f}'.format(
+                    fps, pixAcc, mIoU))
 
-    pos = confusion_matrix.sum(1)
-    res = confusion_matrix.sum(0)
-    tp = np.diag(confusion_matrix)
-
-    IU_array = (tp / np.maximum(1.0, pos + res - tp))
-    mean_IU = IU_array.mean()
-
-    print({'meanIU': mean_IU, 'IU_array': IU_array})
-    return mean_IU
+    print({'meanIU': mIoU, 'IU_array': IoU})
+    return mIoU
 
 
 def main(opt):
