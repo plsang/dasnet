@@ -6,12 +6,12 @@ Pytorch implementation of drivable area segmentation detection networks.
 - [x] Getting started from this [OCNet project](https://github.com/PkuRainBow/OCNet) (they reported latest SoA results, Pytorch implementation, and can be combined with other networks like PSPNet and Deeplab)
   - [x] Train and test on CityScapes dataset (Their results on the val set of Cityscapes is ~79.5 mIoU, ours is ~78.7 mIoU)
   - [x] Test on our dataset
-- [ ] Redesign to support multiple datasets and multiple segmentation networks
-  - [ ] Train and test on another datasat like ADE20K or BDD dataset
-  - [ ] Implement popular segmentation networks like PSPNet, Deeplab variants.
+  - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset
+  - [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
+- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project like DANet or Context encoding since their implemenetations are better. 
 
 ## Installation
-- Docker image: `ascent-docker.zapto.org:443/ocnet`
+- Docker image: `ascent-docker.zapto.org:443/ocnet` --> `docker.ascentrobotics.jp:443/ocnet` 
 
 ## Dataset
 - Cityscapes: `/datashare/datasets/cityscapes`
@@ -19,7 +19,7 @@ Pytorch implementation of drivable area segmentation detection networks.
 
 ## Train model
 - Run `make train`
-- Train on `dgx01`: `kubectl create -f config/dnet.yml`
+- Train on `dgx01`: `kubectl create -f config/dasnet.yml`
 
 ```
 usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
@@ -38,7 +38,7 @@ usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
 
 ## Test model
 - Run `make test`
-- Test on `dgx01`: `kubectl create -f config/dnet_test.yml`
+- Test on `dgx01`: `kubectl create -f config/dasnet_test.yml`
 
 ```
 usage: test.py [-h] [--test_data_list TEST_DATA_LIST]
@@ -51,5 +51,20 @@ usage: test.py [-h] [--test_data_list TEST_DATA_LIST]
 
 ```
 
+## Experimental Results
+
+### Results on CityScapes (val set). All models were ran for 100 epochs, except for the last one.
+The results are not as impressive as they reported. 
+
+| Method                                                                 | mIoU  |
+|------------------------------------------------------------------------|-------|
+| Baseline                                                               | 71.98 |
+| Baseline + Object Context (OC)                                         | 75.66 |
+| Baseline + Pyramid Pooling Module (PPM) + Object Context (OC)          | 75.67 |
+| Baseline + Atrous Spatial Pyramid Pooling (ASPP) + Object Context (OC) | 75.60 |
+| Baseline + Atrous Spatial Pyramid Pooling (ASPP) + Object Context (OC) (200 epochs) | 78.70 |
+
 ## Acknowledgements
 - [OCNet: Object Context Network for Scene Parsing](https://github.com/PkuRainBow/OCNet)
+- [Dual Attention Network for Scene Segmentation](https://github.com/junfu1115/DANet)
+- [Context Encoding for Semantic Segmentation](https://github.com/zhanghang1989/PyTorch-Encoding)
