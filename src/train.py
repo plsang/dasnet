@@ -169,7 +169,7 @@ def main(opt):
     model = DataParallelModel(model)
 
     if 'dsn' in opt.model_type:
-        criterion = CriterionDSN(dsn_weight=float(opt.dsn_weight), use_weight=True)
+        criterion = CriterionDSN(dsn_weight=float(opt.dsn_weight))
     else:
         criterion = CriterionCrossEntropy()
 
