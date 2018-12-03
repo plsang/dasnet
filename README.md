@@ -8,7 +8,7 @@ Pytorch implementation of drivable area segmentation detection networks.
   - [x] Test on our dataset
   - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset
   - [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
-- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project like DANet or Context encoding since their implemenetations are better. 
+- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project such as (DANet)[https://github.com/junfu1115/DANet] or (Context Encoding)[https://github.com/zhanghang1989/PyTorch-Encoding] since their implemenetations are way better. 
 
 ## Installation
 - Docker image: `ascent-docker.zapto.org:443/ocnet` --> `docker.ascentrobotics.jp:443/ocnet` 
@@ -16,6 +16,40 @@ Pytorch implementation of drivable area segmentation detection networks.
 ## Dataset
 - Cityscapes: `/datashare/datasets/cityscapes`
 - Ascent images: `/users/yizhou/rosbags`
+
+## Example of training pairs
+There are 30 different labels in Cityscapes dataset. Class ID and Train ID is assigned to each pixel. Since not all classes are used for evaluation, only 19 train IDs are used starting from 0 to 18. The ignoring labels that are not evaluated during the testing phase can be masked out using a predefined value such as 255 or -1. 
+
+<table style="width:100%">
+  <tr>
+    <th>
+      <p align="center">
+ <a href="https://youtu.be/WBNw1tKe4xE"><img src="./demo/frankfurt_000000_012121_leftImg8bit.png" alt="Original image" width="100%" height="100%"></a>
+ <br>Original image
+</p>
+    </th>
+    <th>
+      <p align="center">
+ <a href="https://youtu.be/2TiQuKux3JU"><img src="./demo/frankfurt_000000_012121_gtFine_color.png" alt="Ground truth annotation" width="100%" height="100%"></a>
+ <br>Ground truth annotation
+</p>
+    </th>
+    <th>
+      <p align="center">
+ <a href="https://youtu.be/enVAMUN2qmE"><img src="./demo/frankfurt_000000_012121_leftImg8bit_pred.png" alt="Prediction image" width="100%" height="100%"></a>
+ <br>Predicted output
+</p>
+    </th>
+<th>
+      <p align="center">
+ <a href="https://youtu.be/enVAMUN2qmE"><img src="./demo/frankfurt_000000_012121_leftImg8bit_drivable.png" alt="Drivable Area" width="100%" height="100%"></a>
+ <br>Drivable Area (i.e., Road)
+</p>
+    </th>
+    
+  </tr>
+</table>
+
 
 ## Train model
 - Run `make train`
