@@ -6,12 +6,12 @@ Pytorch implementation of drivable area segmentation detection networks.
 - [x] Getting started from this [OCNet project](https://github.com/PkuRainBow/OCNet) (they reported latest SoA results, Pytorch implementation, and can be combined with other networks like PSPNet and Deeplab)
   - [x] Train and test on CityScapes dataset (Their results on the val set of Cityscapes is ~79.5 mIoU, ours is ~78.7 mIoU)
   - [x] Test on our dataset
-  - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset (Currently our mIoU is 58.31, SoA is 86.18)
+  - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset (Currently our mIoU is 58.31, SoA is **86.18**)
   - [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
 - [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project such as [DANet](https://github.com/junfu1115/DANet) or [Context Encoding](https://github.com/zhanghang1989/PyTorch-Encoding) since their implemenetations are way better. 
 
 ## Installation
-- Docker image: `ascent-docker.zapto.org:443/ocnet` --> `docker.ascentrobotics.jp:443/ocnet` 
+- Docker image: `docker.ascentrobotics.jp:443/ocnet` 
 
 ## Dataset
 - Cityscapes: `/datashare/datasets/cityscapes`
@@ -53,7 +53,7 @@ There are 30 different labels in Cityscapes dataset. Class ID and Train ID is as
 
 ## Train model
 - Run `make train`
-- Train on `dgx01`: `kubectl create -f config/dasnet.yml`
+- Train on `dgx01`: `kubectl create -f config/dasnet_train.yml`
 
 ```
 usage: train.py [-h] [--data_dir DATA_DIR] [--train_data_list TRAIN_DATA_LIST]
