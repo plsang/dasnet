@@ -8,7 +8,7 @@ Pytorch implementation of drivable area segmentation detection networks.
   - [x] Test on our dataset
   - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset (Currently our mIoU is 58.31, SoA is 86.18)
   - [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
-- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project such as (DANet)[https://github.com/junfu1115/DANet] or (Context Encoding)[https://github.com/zhanghang1989/PyTorch-Encoding] since their implemenetations are way better. 
+- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project such as [DANet](https://github.com/junfu1115/DANet) or [Context Encoding](https://github.com/zhanghang1989/PyTorch-Encoding) since their implemenetations are way better. 
 
 ## Installation
 - Docker image: `ascent-docker.zapto.org:443/ocnet` --> `docker.ascentrobotics.jp:443/ocnet` 
