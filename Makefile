@@ -57,14 +57,19 @@ $(OUT_DIR)/model/$(DATASET)_%_lr0001.pth:
 
 #MODEL_FILE=$(OUT_DIR)/model/model_baseline_lr0001.pth
 #MODEL_FILE=$(OUT_DIR)/model/model_base_oc_dsn_lr0001.pth
-MODEL_FILE=$(OUT_DIR)/model/model_pyramid_oc_dsn_lr0001.pth
+#MODEL_FILE=$(OUT_DIR)/model/model_pyramid_oc_dsn_lr0001.pth
 #MODEL_FILE=$(OUT_DIR)/model/model_asp_oc_dsn_lr0001.pth
+MODEL_FILE=$(OUT_DIR)/model/bdd_asp_oc_dsn_lr0001.pth 
+
 test: $(RESULT_FILE)
 $(RESULT_FILE): $(MODEL_FILE)
 	python src/test.py $^ \
 		--test_data_list $(META_DIR)/$(DATASET)_val.txt \
-		--crop_size_h 1024 --crop_size_w 2048 \
-		--batch_size 2 --num_workers 8\
+		--output_dir $(OUT_DIR)/images/bdd --store_output \
+		--crop_size_h 720 --crop_size_w 1280 \
+		--batch_size 4 --num_workers 8\
 		--output_file $@ 
 
 
+# cityscapes
+# --crop_size_h 1024 --crop_size_w 2048 \

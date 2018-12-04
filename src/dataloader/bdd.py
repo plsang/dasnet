@@ -76,7 +76,7 @@ class BDDDataloader(data.Dataset):
 
         if datafiles["label"]:
             label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
-            label = self.id2trainId(label)
+            #label = self.id2trainId(label)
         else:
             label = {}
         size = image.shape

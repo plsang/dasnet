@@ -111,12 +111,21 @@ def test(opt, model, loader):
                     output_im.save(output_file)
 
                     src_img = org_images[i].data.numpy()
-                    drivable_img = np.where(seg_pred[i]==0, 0, 19).astype(np.uint8)
-                    drivable_img = Image.fromarray(drivable_img)
-                    drivable_img.putpalette(palette)
-                    drivable_img = np.array(drivable_img.convert('RGB')).astype(src_img.dtype)
-                    #overlay_img = cv2.addWeighted(src_img, 1.0, drivable_img, 1.0, 0)
-                    src_img[drivable_img > 0] = 0
+
+                    if opt.dataset == 'cityscapes':
+                        drivable_img = np.where(seg_pred[i]==0, 0, 19).astype(np.uint8)
+                        drivable_img = Image.fromarray(drivable_img)
+                        drivable_img.putpalette(palette)
+                        drivable_img = np.array(drivable_img.convert('RGB')).astype(src_img.dtype)
+                        #overlay_img = cv2.addWeighted(src_img, 1.0, drivable_img, 1.0, 0)
+                        src_img[drivable_img > 0] = 0
+                    else:
+                        drivable_img = seg_pred[i]
+                        drivable_img[drivable_img == 0] = 19
+                        drivable_img = Image.fromarray(drivable_img)
+                        drivable_img.putpalette(palette)
+                        drivable_img = np.array(drivable_img.convert('RGB')).astype(src_img.dtype)
+
                     overlay_img = cv2.add(src_img, drivable_img)
                     output_file = os.path.join(opt.output_dir, image_names[i] + '_drivable.png')
                     cv2.imwrite(output_file, cv2.cvtColor(overlay_img, cv2.COLOR_RGB2BGR))

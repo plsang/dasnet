@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dsnet
+  name: dasnet
 spec:
   volumes:
     - name: dshm
@@ -10,9 +10,6 @@ spec:
     - hostPath:
         path: /datashare
       name: datashare
-    - hostPath:
-        path: /users
-      name: users
  
   securityContext:
     runAsUser: 119
@@ -25,9 +22,9 @@ spec:
  
   containers:
     - name: ocnet
-      image: ascent-docker.zapto.org:443/ocnet
+      image: docker.ascentrobotics.jp/ocnet
       command: ["/bin/bash"]
-      args: ["-c", "cd /users/sang/works/dasnet; make train"]
+      args: ["-c", "cd /datashare/users/sang/works/dasnet; make train DATASET=bdd"]
       extendedResourceRequests: ["nvidia-gpu"]
  
       resources:
@@ -43,8 +40,6 @@ spec:
         name: dshm
       - mountPath: /datashare
         name: datashare
-      - mountPath: /users
-        name: users
          
   extendedResources:
     - name: "nvidia-gpu"
