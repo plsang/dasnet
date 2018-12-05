@@ -22,7 +22,7 @@ from utils.parallel import DataParallelModel
 logger = logging.getLogger(__name__)
 # warnings.filterwarnings('ignore')
 
-def get_palette(num_cls):
+def get_palette(dataset, num_cls=0):
     """ Returns the color map for visualizing the segmentation mask.
     Cf. https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
     Args:
@@ -30,29 +30,35 @@ def get_palette(num_cls):
     Returns:
         The color map
     """
-
-    palette = [0] * (num_cls * 3)
-    palette[0:3] = (128, 64, 128)       # 0: 'road'
-    palette[3:6] = (244, 35, 232)        # 1 'sidewalk'
-    palette[6:9] = (70, 70, 70)         # 2''building'
-    palette[9:12] = (102, 102,156)       # 3 wall
-    palette[12:15] =  (190, 153,153)     # 4 fence
-    palette[15:18] = (153, 153,153)      # 5 pole
-    palette[18:21] = (250, 170, 30)      # 6 'traffic light'
-    palette[21:24] = (220, 220, 0)       # 7 'traffic sign'
-    palette[24:27] = (107, 142, 35)      # 8 'vegetation'
-    palette[27:30] = (152, 251,152)      # 9 'terrain'
-    palette[30:33] = ( 70, 130,180)      # 10 sky
-    palette[33:36] = (220, 20, 60)      # 11 person
-    palette[36:39] = (255, 0, 0)        # 12 rider
-    palette[39:42] = (0, 0, 142)        # 13 car
-    palette[42:45] = (0, 0, 70)         # 14 truck
-    palette[45:48] = (0, 60,100)        # 15 bus
-    palette[48:51] = (0, 80,100)        # 16 train
-    palette[51:54] = (0, 0,230)         # 17 'motorcycle'
-    palette[54:57] = (119, 11, 32)      # 18 'bicycle'
-    # palette[57:60] = (105, 105, 105)
-    palette[57:60] = (0, 0, 0)
+    if dataset == 'bdd':
+        palette = [0] * (num_cls * 3)
+        palette[0:3] = (0, 0, 0)           # 0: 'background' (transparent)
+        palette[3:6] = (0, 255, 0)        # 1: 'drivable' (lime)
+        palette[6:9] = (0, 0, 255)        # 2: 'alternative drivable' (blue)
+        palette[9:12] = (0, 0, 0)        # :3 'ignore labels'
+    else:
+        palette = [0] * (num_cls * 3)
+        palette[0:3] = (128, 64, 128)       # 0: 'road'
+        palette[3:6] = (244, 35, 232)        # 1 'sidewalk'
+        palette[6:9] = (70, 70, 70)         # 2''building'
+        palette[9:12] = (102, 102,156)       # 3 wall
+        palette[12:15] =  (190, 153,153)     # 4 fence
+        palette[15:18] = (153, 153,153)      # 5 pole
+        palette[18:21] = (250, 170, 30)      # 6 'traffic light'
+        palette[21:24] = (220, 220, 0)       # 7 'traffic sign'
+        palette[24:27] = (107, 142, 35)      # 8 'vegetation'
+        palette[27:30] = (152, 251,152)      # 9 'terrain'
+        palette[30:33] = ( 70, 130,180)      # 10 sky
+        palette[33:36] = (220, 20, 60)      # 11 person
+        palette[36:39] = (255, 0, 0)        # 12 rider
+        palette[39:42] = (0, 0, 142)        # 13 car
+        palette[42:45] = (0, 0, 70)         # 14 truck
+        palette[45:48] = (0, 60,100)        # 15 bus
+        palette[48:51] = (0, 80,100)        # 16 train
+        palette[51:54] = (0, 0,230)         # 17 'motorcycle'
+        palette[54:57] = (119, 11, 32)      # 18 'bicycle'
+        # palette[57:60] = (105, 105, 105)
+        palette[57:60] = (0, 0, 0)
     return palette
 
 
@@ -75,9 +81,12 @@ def test(opt, model, loader):
 
     run_time = AverageMeter()
     end = time.time()
-    palette = get_palette(20)
+    palette = get_palette(opt.dataset, opt.num_classes+1)
 
     total_inter, total_union, total_correct, total_label = 0, 0, 0, 0
+    pixAcc = 0
+    IoU = 0
+    mIoU = 0
     pbar = tqdm(loader)
     with torch.no_grad():
         for data in pbar:
@@ -121,7 +130,6 @@ def test(opt, model, loader):
                         src_img[drivable_img > 0] = 0
                     else:
                         drivable_img = seg_pred[i]
-                        drivable_img[drivable_img == 0] = 19
                         drivable_img = Image.fromarray(drivable_img)
                         drivable_img.putpalette(palette)
                         drivable_img = np.array(drivable_img.convert('RGB')).astype(src_img.dtype)
@@ -144,7 +152,7 @@ def test(opt, model, loader):
 
             # measure speed test
             run_time.update(time.time() - end)
-            end = time.time()
+            nd = time.time()
             fps = N_/run_time.avg
             pbar.set_description(
                 'Average run time: {:.3f} fps, pixAcc={:.6f}, mIoU={:.6f}'.format(

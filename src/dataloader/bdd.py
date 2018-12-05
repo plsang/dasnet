@@ -31,7 +31,8 @@ class BDDDataloader(data.Dataset):
         # otherwise, if data_list is a file, it should contain image paths
         if os.path.isdir(data_list):
             pattern = '{}/*.{}'.format(data_list, opt.image_ext)
-            self.img_ids = [(os.path.basename(f), None) for f in glob.glob(pattern)]
+            #self.img_ids = [(os.path.basename(f), None) for f in glob.glob(pattern)]
+            self.img_ids = [(f, None) for f in glob.glob(pattern)]
             self.img_ids = sorted(self.img_ids, key=lambda x:x[0])
         else:
             self.img_ids = [i_id.strip().split() for i_id in open(data_list)]

@@ -1,12 +1,13 @@
 DATASETS=cityscapes bdd
 DATASET?=cityscapes
 
+DATASET_DIR=/datashare/datasets_3rd_party
 ifeq ($(DATASET), cityscapes)
-	DATA_DIR=/datashare/datasets/cityscapes
+	DATA_DIR=$(DATASET_DIR)/cityscapes
 	NUM_CLASSES=19
 	CROP_SIZE=769
 else ifeq ($(DATASET), bdd)
-	DATA_DIR=/datashare/datasets/bdd/bdd100k
+	DATA_DIR=$(DATASET_DIR)/bdd/bdd100k
 	NUM_CLASSES=3
 	CROP_SIZE=512
 else
