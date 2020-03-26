@@ -2,20 +2,8 @@
 
 Pytorch implementation of drivable area segmentation detection networks. 
 
-# TODO
-- [x] Getting started from this [OCNet project](https://github.com/PkuRainBow/OCNet) (they reported latest SoA results, Pytorch implementation, and can be combined with other networks like PSPNet and Deeplab)
-  - [x] Train and test on CityScapes dataset (Their results on the val set of Cityscapes is ~79.5 mIoU, ours is ~78.7 mIoU)
-  - [x] Test on our dataset
-  - [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset (Currently our mIoU is **83.6** (on val), SoA is **86.18** (on test))
-  - [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
-- [ ] Redesign to support multiple datasets and multiple segmentation networks --> It is probably better to base on another project such as [DANet](https://github.com/junfu1115/DANet) or [Context Encoding](https://github.com/zhanghang1989/PyTorch-Encoding) since their implemenetations are way better. 
-
-## Installation
-- Docker image: `docker.ascentrobotics.jp:443/ocnet` 
-
 ## Dataset
 - Cityscapes: `/datashare/datasets/cityscapes`
-- Ascent images: `/users/yizhou/rosbags`
 
 ## Example of training pairs
 There are 30 different labels in Cityscapes dataset. Class ID and Train ID is assigned to each pixel. Since not all classes are used for evaluation, only 19 train IDs are used starting from 0 to 18. The ignoring labels that are not evaluated during the testing phase can be masked out using a predefined value such as 255 or -1. 
@@ -102,3 +90,13 @@ The results are not as impressive as they reported.
 - [OCNet: Object Context Network for Scene Parsing](https://github.com/PkuRainBow/OCNet)
 - [Dual Attention Network for Scene Segmentation](https://github.com/junfu1115/DANet)
 - [Context Encoding for Semantic Segmentation](https://github.com/zhanghang1989/PyTorch-Encoding)
+
+
+## Tasks
+- [x] Getting started from this [OCNet project](https://github.com/PkuRainBow/OCNet)
+- [x] Train and test on CityScapes dataset (Their results on the val set of Cityscapes is ~79.5 mIoU, ours is ~78.7 mIoU)
+- [x] Test on our dataset
+- [x] Train and test on another datasat like ~~ADE20K or~~ BDD dataset (Currently our mIoU is **83.6** (on val), SoA is **86.18** (on test))
+- [x] Implement popular segmentation networks like PSPNet, Deeplab variants. 
+
+
